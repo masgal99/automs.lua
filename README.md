@@ -1,0 +1,2 @@
+# automs.lua
+AUTO MS
