@@ -1,184 +1,226 @@
--- ================================================
--- LANG SC 🔴🔵🟢 - ULTIMATE MODERN EDITION
--- ================================================
+-- =====================================
+-- 🔥 LANGZ HUB ⚪🔴🔵🟢 (FULL SYSTEM)
+-- =====================================
 
 local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local hum = char:WaitForChild("Humanoid")
 
--- CONFIG POSISI (Sesuaikan jika koordinat game berubah)
-local POS_DEALER = CFrame.new(510, 3, 608)
-local POS_SELL = CFrame.new(1175, 20, 30)
+-- ================= CONFIG =================
+local POS_DEALER = CFrame.new(510,3,608)
+local POS_SELL   = CFrame.new(1175,20,30)
+local SAFE_POS   = CFrame.new(1190,3,-243)
 
--- STATE VARIABLES
 _G.AutoCook = false
-_G.AutoBuy = false
-_G.DeleteMode = false
-_G.CookTarget = 10
-_G.MinStok = 5
+_G.AntiKill = false
+_G.NoClip = false
+_G.BuyAmount = 10
 
--- ================== UTILITY ==================
+-- ================= UI =================
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "LangzHub"
 
-local function getInv(itemName)
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0,320,0,360)
+main.Position = UDim2.new(0.3,0,0.3,0)
+main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+main.Active = true
+main.Draggable = true
+
+-- HEADER
+local header = Instance.new("Frame", main)
+header.Size = UDim2.new(1,0,0,35)
+header.BackgroundColor3 = Color3.fromRGB(30,30,30)
+
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1,-80,1,0)
+title.Position = UDim2.new(0,10,0,0)
+title.Text = "Langz Hub ⚪🔴🔵🟢"
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- CLOSE
+local closeBtn = Instance.new("TextButton", header)
+closeBtn.Size = UDim2.new(0,30,0,25)
+closeBtn.Position = UDim2.new(1,-35,0,5)
+closeBtn.Text = "X"
+closeBtn.BackgroundColor3 = Color3.fromRGB(170,0,0)
+
+closeBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+-- MINIMIZE
+local minimizeBtn = Instance.new("TextButton", header)
+minimizeBtn.Size = UDim2.new(0,30,0,25)
+minimizeBtn.Position = UDim2.new(1,-70,0,5)
+minimizeBtn.Text = "-"
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(80,80,80)
+
+local minimized = false
+minimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    for _,v in pairs(main:GetChildren()) do
+        if v ~= header then
+            v.Visible = not minimized
+        end
+    end
+end)
+
+-- ================= BUTTON =================
+local function makeBtn(text, y, callback)
+    local btn = Instance.new("TextButton", main)
+    btn.Size = UDim2.new(0,280,0,30)
+    btn.Position = UDim2.new(0,20,0,y)
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+
+    btn.MouseButton1Click:Connect(function()
+        callback(btn)
+    end)
+end
+
+-- ================= SLIDER =================
+local function makeSlider(text, y, min, max, default, callback)
+    local label = Instance.new("TextLabel", main)
+    label.Size = UDim2.new(0,280,0,20)
+    label.Position = UDim2.new(0,20,0,y)
+    label.Text = text..": "..default
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.new(1,1,1)
+
+    local btn = Instance.new("TextButton", main)
+    btn.Size = UDim2.new(0,280,0,20)
+    btn.Position = UDim2.new(0,20,0,y+20)
+    btn.Text = "Random Set"
+
+    btn.MouseButton1Click:Connect(function()
+        local val = math.random(min,max)
+        label.Text = text..": "..val
+        callback(val)
+    end)
+end
+
+-- ================= FUNCTIONS =================
+local function pressE(t)
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    task.wait(t or 0.2)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+end
+
+local function safeTP(cf)
+    hum.Sit = false
+    _G.NoClip = true
+    for i=1,3 do
+        hrp.CFrame = cf + Vector3.new(0,3,0)
+        task.wait(0.2)
+    end
+    _G.NoClip = false
+end
+
+local function getInv(name)
     local count = 0
-    local containers = {player.Backpack, player.Character}
-    for _, container in pairs(containers) do
-        if container then
-            for _, item in pairs(container:GetChildren()) do
-                if item.Name:lower():find(itemName:lower()) then count += 1 end
-            end
+    for _,v in pairs(player.Backpack:GetChildren()) do
+        if v.Name:lower():find(name:lower()) then
+            count += 1
         end
     end
     return count
 end
 
-local function tp(cf)
-    if hrp then hrp.CFrame = cf + Vector3.new(0, 3, 0) end
-    task.wait(0.5)
+local function equipBag()
+    local bag = player.Backpack:FindFirstChild("Empty Bag") or char:FindFirstChild("Empty Bag")
+    if bag then
+        bag.Parent = char
+        task.wait(0.3)
+        return true
+    end
+    return false
 end
 
-local function interactE(dur)
-    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    task.wait(dur or 0.2)
-    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-end
-
--- ================== CORE LOGIC ==================
-
--- Logika Masak Otomatis
+-- ================= AUTO COOK =================
 task.spawn(function()
-    local suksesMasak = 0
-    while true do
+    while task.wait(1) do
         if _G.AutoCook then
-            if suksesMasak < _G.CookTarget then
-                -- Cek apakah butuh beli bahan dulu?
-                if getInv("Water") == 0 or getInv("Sugar") == 0 or getInv("Gelatin") == 0 then
-                    print("Bahan Kosong! Restock ke Dealer...")
-                    tp(POS_DEALER)
-                    interactE(3)
-                    task.wait(1)
+
+            if getInv("Water") < 5 then
+                safeTP(POS_DEALER)
+                repeat
+                    pressE(0.5)
+                    task.wait(0.8)
+                until getInv("Water") >= _G.BuyAmount
+            end
+
+            local pot = workspace:FindFirstChild("Pot") or workspace:FindFirstChild("Water Machine")
+
+            if pot then
+                safeTP(pot:GetPivot())
+
+                pressE(0.5) -- water
+                task.wait(20)
+
+                pressE(0.5) -- sugar
+                task.wait(1)
+
+                pressE(0.5) -- gelatin
+                task.wait(45)
+
+                if equipBag() then
+                    pressE(0.5)
                 end
 
-                -- Mulai Masak
-                local pot = workspace:FindFirstChild("Pot") or workspace:FindFirstChild("Water Machine")
-                if pot then
-                    tp(pot:GetPivot())
-                    -- Step 1: Air
-                    print("Step 1: Air...")
-                    interactE(2)
-                    task.wait(20) -- DELAY 20 DETIK SESUAI PERMINTAAN
-                    
-                    -- Step 2: Gula & Gelatin
-                    print("Step 2: Gula & Gelatin...")
-                    interactE(0.5) task.wait(0.8)
-                    interactE(0.5) task.wait(0.8)
-                    
-                    -- Step 3: Tunggu Matang & Ambil
-                    print("Menunggu Matang...")
-                    task.wait(30)
-                    interactE(0.5)
-                    suksesMasak = suksesMasak + 1
-                    
-                    -- Step 4: Auto Sell
-                    print("Auto Selling...")
-                    tp(POS_SELL)
-                    interactE(1)
-                    task.wait(1)
-                end
-            else
-                print("Target Masak Tercapai!")
-                _G.AutoCook = false
-                suksesMasak = 0
+                safeTP(POS_SELL)
+                pressE(1)
             end
         end
-        task.wait(1)
     end
 end)
 
--- Delete Object Mode
-UIS.InputBegan:Connect(function(input, processed)
-    if not processed and _G.DeleteMode and input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local target = player:GetMouse().Target
-        if target and target.Parent and not target:IsDescendantOf(player.Character) then
-            target.Parent = nil
+-- ================= ANTI KILL =================
+local last = hum.Health
+hum.HealthChanged:Connect(function(h)
+    if _G.AntiKill and h < last then
+        safeTP(SAFE_POS)
+    end
+    last = h
+end)
+
+-- ================= NOCLIP =================
+RunService.Stepped:Connect(function()
+    if _G.NoClip then
+        for _,v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
         end
     end
 end)
 
--- ================== MODERN UI ==================
+-- ================= UI BUTTON =================
+makeBtn("Auto Cook: OFF", 50, function(btn)
+    _G.AutoCook = not _G.AutoCook
+    btn.Text = _G.AutoCook and "Auto Cook: ON" or "Auto Cook: OFF"
+end)
 
-local sg = Instance.new("ScreenGui", player.PlayerGui)
-sg.Name = "LangSC_V3"
-sg.ResetOnSpawn = false
+makeBtn("Anti Kill: OFF", 90, function(btn)
+    _G.AntiKill = not _G.AntiKill
+    btn.Text = _G.AntiKill and "Anti Kill: ON" or "Anti Kill: OFF"
+end)
 
-local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 300, 0, 450)
-main.Position = UDim2.new(0.5, -150, 0.5, -225)
-main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-main.BorderSizePixel = 0
-main.Active = true
-main.Draggable = true
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 15)
-local stroke = Instance.new("UIStroke", main); stroke.Color = Color3.fromRGB(0, 255, 150); stroke.Thickness = 2
+makeBtn("Noclip: OFF", 130, function(btn)
+    _G.NoClip = not _G.NoClip
+    btn.Text = _G.NoClip and "Noclip: ON" or "Noclip: OFF"
+end)
 
--- Tab Container (Scrolling)
-local container = Instance.new("ScrollingFrame", main)
-container.Size = UDim2.new(1, -20, 1, -60)
-container.Position = UDim2.new(0, 10, 0, 50)
-container.BackgroundTransparency = 1
-container.ScrollBarThickness = 2
-local layout = Instance.new("UIListLayout", container); layout.Padding = UDim.new(0, 12); layout.HorizontalAlignment = "Center"
+makeSlider("Buy Amount", 170, 5, 50, 10, function(v)
+    _G.BuyAmount = v
+end)
 
--- Title & Close
-local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 40); title.Text = "LANG SC 🔴🔵🟢"; title.TextColor3 = Color3.new(1,1,1); title.Font = "GothamBold"; title.BackgroundTransparency = 1
-local close = Instance.new("TextButton", main)
-close.Size = UDim2.new(0, 30, 0, 30); close.Position = UDim2.new(1, -35, 0, 5); close.Text = "X"; close.BackgroundColor3 = Color3.fromRGB(200, 50, 50); close.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", close)
-close.MouseButton1Click:Connect(function() sg:Destroy() end)
-
--- UI Helper Functions
-local function createToggle(name, varName)
-    local btn = Instance.new("TextButton", container)
-    btn.Size = UDim2.new(0.9, 0, 0, 40); btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40); btn.Text = name .. ": OFF"; btn.TextColor3 = Color3.new(1,1,1); btn.Font = "GothamMedium"
-    Instance.new("UICorner", btn)
-    btn.MouseButton1Click:Connect(function()
-        _G[varName] = not _G[varName]
-        btn.Text = name .. ": " .. (_G[varName] and "ON" or "OFF")
-        btn.BackgroundColor3 = _G[varName] and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(30, 30, 40)
-    end)
-end
-
-local function createSlider(name, min, max, varName)
-    local frame = Instance.new("Frame", container)
-    frame.Size = UDim2.new(0.9, 0, 0, 55); frame.BackgroundTransparency = 1
-    local label = Instance.new("TextLabel", frame); label.Size = UDim2.new(1, 0, 0, 20); label.Text = name .. ": " .. _G[varName]; label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1
-    local bar = Instance.new("Frame", frame); bar.Size = UDim2.new(1, 0, 0, 8); bar.Position = UDim2.new(0,0,0,30); bar.BackgroundColor3 = Color3.new(0.2,0.2,0.2)
-    local fill = Instance.new("Frame", bar); fill.Size = UDim2.new(_G[varName]/max, 0, 1, 0); fill.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
-    local trigger = Instance.new("TextButton", bar); trigger.Size = UDim2.new(1,0,1,0); trigger.BackgroundTransparency = 1; trigger.Text = ""
-    
-    trigger.MouseButton1Down:Connect(function()
-        local moveConn
-        moveConn = RunService.RenderStepped:Connect(function()
-            local mousePos = UIS:GetMouseLocation().X
-            local rel = math.clamp((mousePos - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-            _G[varName] = math.floor(min + (rel * (max - min)))
-            label.Text = name .. ": " .. _G[varName]
-            fill.Size = UDim2.new(rel, 0, 1, 0)
-        end)
-        UIS.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then moveConn:Disconnect() end end)
-    end)
-end
-
--- BUILDING THE MENU
-createToggle("AUTO COOK FULLY", "AutoCook")
-createSlider("Target Masak", 1, 100, "CookTarget")
-createSlider("Beli Jika Stok <", 1, 50, "MinStok")
-createToggle("DELETE OBJECT MODE", "DeleteMode")
-
-print("✅ LANG SC RELOADED SUCCESSFULLY!")
+print("✅ LANGZ HUB FULL LOADED 🔥")
