@@ -1,433 +1,317 @@
--- ================================================
--- 🔥 LANGZ HUB V6 - NEON SMALL UI + MANUAL COOK
--- DEVELOPER: LANG MPRUY | SINCE 2026
--- ================================================
+-- ============================================================
+-- MARSHMELLOW FULL SYSTEM (ALL IN ONE)
+-- ============================================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local Stats = game:GetService("Stats")
-local UserInputService = game:GetService("UserInputService")
+local VIM = game:GetService("VirtualInputManager")
 
-local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
+local lp = Players.LocalPlayer
+local char = lp.Character or lp.CharacterAdded:Wait()
 local hrp = char:WaitForChild("HumanoidRootPart")
-local hum = char:WaitForChild("Humanoid")
 
-local POS_DEALER     = CFrame.new(510, 3, 608)
-local POS_SELL       = CFrame.new(1175, 20, 30)
-local POS_APT_CASINO = CFrame.new(1190, 3, -243)
+lp.CharacterAdded:Connect(function(c)
+    char = c
+    hrp = c:WaitForChild("HumanoidRootPart")
+end)
 
-_G.AutoCook  = false
-_G.AutoBuy   = false   -- NEW
-_G.AntiKill  = false   -- NEW
-_G.BuyAmount = 10
-_G.WalkSpeed = 16
+-- GLOBAL
+_G.AutoCook = false
+_G.StopCook = false
+_G.AutoSell = false
+_G.BuyAmount = 3
+_G.ESP = false
+_G.Speed = 16
 
--- Harga bahan
-local HARGA = {
-    ["Water"]       = 20,
-    ["Gelatin"]     = 70,
-    ["Sugar Block"] = 100,
+-- ============================================================
+-- TELEPORT UNDERGROUND
+-- ============================================================
+local LOCS = {
+    ["Dealer"] = CFrame.new(510,3,600),
+    ["Sampah 1"] = CFrame.new(898,10,38),
+    ["Sampah 2"] = CFrame.new(923,10,41),
+    ["Tier 1"] = CFrame.new(1142,10,425),
+    ["Tier 2"] = CFrame.new(1142,10,291),
+    ["RS 1"] = CFrame.new(1142,10,450),
+    ["RS"] = CFrame.new(1050,3,520)
 }
 
--- ================= SMALL NEON GUI =================
-local gui = Instance.new("ScreenGui")
-gui.Name = "LangzHubV6"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
-
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 360, 0, 480)
-main.Position = UDim2.new(0.35, 0, 0.2, 0)
-main.BackgroundColor3 = Color3.fromRGB(9, 9, 18)
-main.BorderSizePixel = 0
-main.Active = true
-main.Draggable = true
-
-local corner = Instance.new("UICorner", main)
-corner.CornerRadius = UDim.new(0, 14)
-
-local stroke = Instance.new("UIStroke", main)
-stroke.Color = Color3.fromRGB(0, 255, 220)
-stroke.Thickness = 3
-stroke.Transparency = 0.15
-
--- HEADER + MINIMIZE
-local header = Instance.new("TextButton", main)
-header.Size = UDim2.new(1, 0, 0, 45)
-header.BackgroundColor3 = Color3.fromRGB(18, 18, 35)
-header.Text = "🌌 LANGZ HUB V6"
-header.TextColor3 = Color3.fromRGB(0, 255, 220)
-header.TextScaled = true
-header.Font = Enum.Font.GothamBold
-
-local headerCorner = Instance.new("UICorner", header)
-headerCorner.CornerRadius = UDim.new(0, 14)
-
-local headerStroke = Instance.new("UIStroke", header)
-headerStroke.Color = Color3.fromRGB(0, 255, 255)
-headerStroke.Thickness = 2.5
-
-local minimized = false
-local FULL_SIZE = UDim2.new(0, 360, 0, 480)
-header.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    main.Size = minimized and UDim2.new(0, 360, 0, 45) or FULL_SIZE
-end)
-
--- ================= TAB SYSTEM =================
-local tabs = {}
-local function createTab(name, x)
-    local btn = Instance.new("TextButton", main)
-    btn.Size = UDim2.new(0, 110, 0, 32)
-    btn.Position = UDim2.new(0, x, 0, 50)
-    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
-    btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(0, 255, 220)
-    btn.TextScaled = true
-    btn.Font = Enum.Font.GothamSemibold
-
-    local frame = Instance.new("Frame", main)
-    frame.Size = UDim2.new(1, -30, 1, -95)
-    frame.Position = UDim2.new(0, 15, 0, 90)
-    frame.BackgroundTransparency = 1
-    frame.Visible = false
-
-    btn.MouseButton1Click:Connect(function()
-        for _, f in pairs(tabs) do f.Visible = false end
-        frame.Visible = true
-    end)
-
-    table.insert(tabs, frame)
-    return frame
+local function tp(cf)
+    hrp.CFrame = cf - Vector3.new(0,5,0)
 end
 
-local tabMain   = createTab("MAIN", 10)
-local tabTP     = createTab("TELEPORT", 125)
-local tabCredit = createTab("CREDIT", 245)
-tabMain.Visible = true
-
--- ================= HELPER FUNCTIONS =================
-local function pressE(holdTime)
-    holdTime = holdTime or 0.12
-    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    task.wait(holdTime)
-    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+local function pressE(t)
+    VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    task.wait(t or 0.1)
+    VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
 end
 
-local function holdE(seconds)
-    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    task.wait(seconds)
-    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-end
-
-local function safeTP(cf)
-    for i = 1, 4 do
-        if hrp and hrp.Parent then
-            hrp.CFrame = cf + Vector3.new(0, 5, 0)
-        end
-        task.wait(0.25)
-    end
-end
-
-local function getInv(name)
-    local count = 0
-    for _, v in pairs(player.Backpack:GetChildren()) do
-        if v.Name:lower():find(name:lower()) then count += 1 end
-    end
-    return count
-end
-
-local function equipEmptyBag()
-    local names = {"Empty Bag", "Bag", "EmptyBag", "Trash Bag"}
-    for _, n in ipairs(names) do
-        local bag = player.Backpack:FindFirstChild(n)
-            or (player.Character and player.Character:FindFirstChild(n))
-        if bag then
-            if bag.Parent ~= player.Character then
-                hum:EquipTool(bag)
-                task.wait(0.4)
+local function getText(str)
+    for _,v in pairs(lp.PlayerGui:GetDescendants()) do
+        if (v:IsA("TextLabel") or v:IsA("TextButton")) and v.Visible then
+            if v.Text:lower():find(str:lower()) then
+                return v
             end
-            return true
         end
     end
-    return false
 end
 
--- ================= ANTI KILL (Auto TP saat kena damage) =================
-local lastHealth = hum.Health
-local antiKillCooldown = false
+-- ============================================================
+-- AUTO BUY
+-- ============================================================
+function AutoBuy()
+    local npc = workspace:FindFirstChild("ShopPart") or workspace:FindFirstChild("NPC")
+    if not npc then return end
 
-RunService.Heartbeat:Connect(function()
-    if not _G.AntiKill then
-        lastHealth = hum.Health
-        return
+    tp(npc.CFrame)
+    task.wait(0.5)
+
+    pressE(2)
+
+    if getText("you the guy") then
+        pressE()
+        pressE()
+
+        local items = {"Gelatin","Sugar Block","Water"}
+        for _,item in ipairs(items) do
+            if getText(item) then
+                for i=1,_G.BuyAmount do
+                    pressE()
+                    task.wait(0.2)
+                end
+            end
+        end
     end
+end
 
-    local currentHealth = hum.Health
-    if currentHealth < lastHealth and not antiKillCooldown then
-        antiKillCooldown = true
-        print("💀 Kena damage! Auto TP ke Apt Casino...")
-        safeTP(POS_APT_CASINO)
-        task.wait(3) -- cooldown 3 detik biar ga spam TP
-        antiKillCooldown = false
-    end
-    lastHealth = currentHealth
-end)
-
--- Respawn handler
-player.CharacterAdded:Connect(function(newChar)
-    char = newChar
-    hrp = newChar:WaitForChild("HumanoidRootPart")
-    hum = newChar:WaitForChild("Humanoid")
-    lastHealth = hum.Health
-    antiKillCooldown = false
-end)
-
--- ================= AUTO BUY (Deteksi harga di UI dealer) =================
--- Auto Buy loop: kalau stok bahan kurang DAN dekat dealer, hold E buat beli
-local buyInProgress = false
+-- ============================================================
+-- AUTO COOK (FIX SESUAI FLOW GAME)
+-- ============================================================
 task.spawn(function()
     while task.wait(1) do
-        if not _G.AutoBuy then continue end
-        if buyInProgress then continue end
+        if _G.AutoCook and not _G.StopCook then
 
-        local needBuy = getInv("Water") < 5 or getInv("Gelatin") < 2 or getInv("Sugar") < 2
-        if not needBuy then continue end
+            -- CEK ADA INTERACT
+            if getText("interact") then
+                
+                -- =========================
+                -- STEP 1: MASUKIN WATER
+                -- =========================
+                pressE(0.2)
+                task.wait(20)
 
-        local distToDealer = (hrp.Position - POS_DEALER.Position).Magnitude
-        if distToDealer > 30 then continue end
+                if _G.StopCook then break end
 
-        buyInProgress = true
-        print("🛒 Auto Buy di Dealer...")
-        print(string.format("   💧 Water      = %d (Harga: %d ea)", getInv("Water"), HARGA["Water"]))
-        print(string.format("   🧪 Gelatin     = %d (Harga: %d ea)", getInv("Gelatin"), HARGA["Gelatin"]))
-        print(string.format("   🍬 Sugar Block = %d (Harga: %d ea)", getInv("Sugar"), HARGA["Sugar Block"]))
+                -- =========================
+                -- STEP 2: MASUKIN SUGAR
+                -- =========================
+                if getText("Sugar") or getText("Sugar Block") then
+                    pressE(0.2)
+                    task.wait(1)
+                end
 
-        -- Interact dealer (hold E 2 detik buka menu)
-        holdE(2)
-        task.wait(0.8)
+                -- =========================
+                -- STEP 3: MASUKIN GELATIN (JANGAN BARENG)
+                -- =========================
+                if getText("Gelatin") then
+                    pressE(0.2)
+                end
 
-        -- Beli sesuai kebutuhan dengan tap E per item
-        for i = 1, _G.BuyAmount do
-            if not _G.AutoBuy then break end
-            pressE(0.1)
-            task.wait(0.25)
-        end
+                -- =========================
+                -- STEP 4: MASAK (45 DETIK)
+                -- =========================
+                for i = 1,45 do
+                    if _G.StopCook then break end
 
-        task.wait(0.5)
-        buyInProgress = false
-    end
-end)
+                    -- EQUIP EMPTY BAG (ANTI BUG)
+                    pcall(function()
+                        local hum = lp.Character:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            hum:EquipTool(nil)
+                        end
+                    end)
 
--- ================= MANUAL AUTO COOK =================
-task.spawn(function()
-    while task.wait(0.6) do
-        if not _G.AutoCook then continue end
+                    task.wait(1)
+                end
 
-        hum.WalkSpeed = _G.WalkSpeed
+                if _G.StopCook then break end
 
-        local pot = workspace:FindFirstChild("Pot")
-        local distToPot = pot and (hrp.Position - pot:GetPivot().Position).Magnitude or 9999
+                -- =========================
+                -- STEP 5: COLLECT
+                -- =========================
+                if getText("Collect") or getText("Take") then
+                    pressE(0.2)
+                end
 
-        if pot and distToPot < 35 then
-            print("💧 Masukkan Air...")
-            pressE()
-            task.wait(2)
-            task.wait(20)
+                -- =========================
+                -- STEP 6: VALIDASI INVENTORY
+                -- =========================
+                if getText("Marshmellow") then
+                    -- berarti masuk inventory
+                    print("✅ BERHASIL MASUK INVENTORY")
+                end
 
-            print("🍬 Masukkan Sugar Block...")
-            pressE()
-            task.wait(1.5)
-            print("🧪 Masukkan Gelatin...")
-            pressE()
-            task.wait(1.5)
-
-            print("⏳ Proses 45 detik...")
-            for i = 1, 45 do
-                if not _G.AutoCook then break end
-                task.wait(1)
             end
-
-            equipEmptyBag()
-            print("📦 Ambil hasil...")
-            pressE()
-            task.wait(1.8)
-
-            print("💰 Pergi jual...")
-            safeTP(POS_SELL)
-            task.wait(0.7)
-            equipEmptyBag()
-            pressE()
-            task.wait(1.2)
         end
     end
 end)
 
--- ================= UI HELPERS =================
-local function makeButton(parent, text, y, color)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(0, 310, 0, 44)
-    btn.Position = UDim2.new(0, 25, 0, y)
-    btn.BackgroundColor3 = color or Color3.fromRGB(25, 25, 45)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(0, 255, 220)
-    btn.TextScaled = true
-    btn.Font = Enum.Font.GothamBold
-    local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 10)
-    local s = Instance.new("UIStroke", btn)
-    s.Color = Color3.fromRGB(0, 255, 220)
-    s.Thickness = 1.5
-    return btn
-end
+-- ============================================================
+-- AUTO SELL
+-- ============================================================
+task.spawn(function()
+    while task.wait(2) do
+        if _G.AutoSell then
+            local npc = workspace:FindFirstChild("ShopPart") or workspace:FindFirstChild("NPC")
+            if npc then
+                tp(npc.CFrame)
+                pressE(2)
 
-local function makeSlider(parent, text, y, minVal, maxVal, default, callback)
-    local val = default
-    local label = Instance.new("TextLabel", parent)
-    label.Size = UDim2.new(0, 310, 0, 22)
-    label.Position = UDim2.new(0, 25, 0, y)
-    label.BackgroundTransparency = 1
-    label.Text = text .. ": " .. val
-    label.TextColor3 = Color3.fromRGB(0, 255, 220)
-    label.TextScaled = true
-    label.Font = Enum.Font.GothamSemibold
-    label.TextXAlignment = Enum.TextXAlignment.Left
+                local items = {
+                    "Small Marshmellow",
+                    "Medium Marshmellow",
+                    "Large Marshmellow"
+                }
 
-    local bar = Instance.new("Frame", parent)
-    bar.Size = UDim2.new(0, 310, 0, 12)
-    bar.Position = UDim2.new(0, 25, 0, y + 28)
-    bar.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-
-    local fill = Instance.new("Frame", bar)
-    fill.Size = UDim2.new((val - minVal) / (maxVal - minVal), 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(0, 255, 220)
-
-    local dragging = false
-    bar.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
-    end)
-    UserInputService.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
-    UserInputService.InputChanged:Connect(function(i)
-        if dragging then
-            local pos = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-            fill.Size = UDim2.new(pos, 0, 1, 0)
-            val = math.floor(minVal + (maxVal - minVal) * pos)
-            label.Text = text .. ": " .. val
-            callback(val)
+                for _,v in ipairs(items) do
+                    if getText(v) then
+                        pressE()
+                    end
+                end
+            end
         end
-    end)
+    end
+end)
+
+-- ============================================================
+-- ESP FULL (BOX + HP + NAME)
+-- ============================================================
+local espColor = Color3.fromRGB(255,0,0)
+
+function createESP(plr)
+    if plr == lp then return end
+
+    local function setup(char)
+        if char:FindFirstChild("ESP") then return end
+
+        local box = Instance.new("BoxHandleAdornment")
+        box.Name = "ESP"
+        box.Size = Vector3.new(4,6,2)
+        box.Color3 = espColor
+        box.AlwaysOnTop = true
+        box.Adornee = char
+        box.Parent = char
+
+        local bill = Instance.new("BillboardGui", char)
+        bill.Size = UDim2.new(0,100,0,40)
+        bill.AlwaysOnTop = true
+
+        local txt = Instance.new("TextLabel", bill)
+        txt.Size = UDim2.new(1,0,1,0)
+        txt.BackgroundTransparency = 1
+        txt.TextColor3 = espColor
+        txt.TextScaled = true
+
+        local hp = Instance.new("Frame", bill)
+        hp.Size = UDim2.new(0.1,0,1,0)
+        hp.Position = UDim2.new(-0.15,0,0,0)
+        hp.BackgroundColor3 = Color3.fromRGB(0,255,0)
+
+        RunService.RenderStepped:Connect(function()
+            if _G.ESP and char:FindFirstChild("HumanoidRootPart") then
+                local dist = (hrp.Position - char.HumanoidRootPart.Position).Magnitude
+                txt.Text = plr.Name.." ["..math.floor(dist).."]"
+
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hp.Size = UDim2.new(0.1,0,hum.Health/hum.MaxHealth,0)
+                end
+            else
+                box.Visible = false
+                bill.Enabled = false
+            end
+        end)
+    end
+
+    if plr.Character then setup(plr.Character) end
+    plr.CharacterAdded:Connect(setup)
 end
 
-local function makeIndicator(parent, text, y)
-    local lbl = Instance.new("TextLabel", parent)
-    lbl.Size = UDim2.new(0, 310, 0, 24)
-    lbl.Position = UDim2.new(0, 25, 0, y)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = text
-    lbl.TextColor3 = Color3.fromRGB(180, 255, 255)
-    lbl.TextScaled = true
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    return lbl
+for _,p in pairs(Players:GetPlayers()) do
+    createESP(p)
 end
+Players.PlayerAdded:Connect(createESP)
 
--- ================= TAB 1 - MAIN =================
-
--- AUTO COOK Button
-local cookBtn = makeButton(tabMain, "AUTO COOK: OFF", 5)
-cookBtn.MouseButton1Click:Connect(function()
-    _G.AutoCook = not _G.AutoCook
-    cookBtn.Text = _G.AutoCook and "AUTO COOK: ON ✅" or "AUTO COOK: OFF"
-    cookBtn.BackgroundColor3 = _G.AutoCook
-        and Color3.fromRGB(0, 60, 50)
-        or Color3.fromRGB(25, 25, 45)
-end)
-
--- AUTO BUY Button (NEW)
-local buyBtn = makeButton(tabMain, "AUTO BUY: OFF", 57)
-buyBtn.MouseButton1Click:Connect(function()
-    _G.AutoBuy = not _G.AutoBuy
-    buyBtn.Text = _G.AutoBuy and "AUTO BUY: ON ✅" or "AUTO BUY: OFF"
-    buyBtn.BackgroundColor3 = _G.AutoBuy
-        and Color3.fromRGB(0, 60, 50)
-        or Color3.fromRGB(25, 25, 45)
-end)
-
--- ANTI KILL Button (NEW)
-local akBtn = makeButton(tabMain, "ANTI KILL: OFF", 109)
-akBtn.MouseButton1Click:Connect(function()
-    _G.AntiKill = not _G.AntiKill
-    akBtn.Text = _G.AntiKill and "ANTI KILL: ON ✅" or "ANTI KILL: OFF"
-    akBtn.BackgroundColor3 = _G.AntiKill
-        and Color3.fromRGB(60, 0, 0)
-        or Color3.fromRGB(25, 25, 45)
-    lastHealth = hum.Health -- reset referensi HP
-end)
-
--- Sliders
-makeSlider(tabMain, "Buy Amount", 162, 5, 50, 10, function(v) _G.BuyAmount = v end)
-makeSlider(tabMain, "WalkSpeed",  217, 16, 100, 16, function(v) _G.WalkSpeed = v end)
-
--- Harga Info Label
-local hargaLbl = makeIndicator(tabMain, "💰 Water:$20 | Gelatin:$70 | Sugar:$100", 274)
-hargaLbl.TextColor3 = Color3.fromRGB(255, 220, 0)
-
--- Inventory Indicators
-local waterLbl   = makeIndicator(tabMain, "Water / Air     : 0", 300)
-local sugarLbl   = makeIndicator(tabMain, "Sugar Block     : 0", 322)
-local gelatinLbl = makeIndicator(tabMain, "Gelatin         : 0", 344)
-local marshLbl   = makeIndicator(tabMain, "Marshmallow     : 0", 366)
-local pingLbl    = makeIndicator(tabMain, "Ping            : -- ms", 388)
-
+-- ============================================================
+-- WALKSPEED
+-- ============================================================
 RunService.RenderStepped:Connect(function()
-    if not tabMain.Visible then return end
-    waterLbl.Text   = "Water / Air     : " .. getInv("Water")
-    sugarLbl.Text   = "Sugar Block     : " .. getInv("Sugar")
-    gelatinLbl.Text = "Gelatin         : " .. getInv("Gelatin")
-    marshLbl.Text   = "Marshmallow     : " .. getInv("Marshmallow")
-    local ping = 0
-    pcall(function()
-        ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
-    end)
-    pingLbl.Text = "Ping            : " .. math.floor(ping) .. " ms"
+    if lp.Character and lp.Character:FindFirstChildOfClass("Humanoid") then
+        lp.Character.Humanoid.WalkSpeed = _G.Speed
+    end
 end)
 
--- ================= TAB 2 - TELEPORT =================
-local tpList = {
-    {"MS Dealer",     POS_DEALER},
-    {"Casino / Sell", POS_SELL},
-    {"Apt Casino",    CFrame.new(1190, 3, -243)},
-    {"Apt Sampah 1",  CFrame.new(902, 10, 72)},
-    {"Apt Sampah 2",  CFrame.new(931, 10, 72)},
-    {"Apt Tier 1",    CFrame.new(1018, 10, 243)},
-    {"Apt Tier 2",    CFrame.new(1018, 10, 214)},
-    {"Apt RS 2",      CFrame.new(1108, 10, 427)},
-    {"Apt RS 1",      CFrame.new(1109, 10, 456)},
-}
+-- ============================================================
+-- GUI (RESIZE + MINIMIZE + SLIDER)
+-- ============================================================
+local sg = Instance.new("ScreenGui", lp.PlayerGui)
 
-local y = 10
-for _, loc in ipairs(tpList) do
-    local tpBtn = makeButton(tabTP, loc[1], y)
-    tpBtn.MouseButton1Click:Connect(function()
-        safeTP(loc[2])
-    end)
-    y += 46
+local frame = Instance.new("Frame", sg)
+frame.Size = UDim2.new(0,300,0,400)
+frame.Position = UDim2.new(0.7,0,0.3,0)
+frame.BackgroundColor3 = Color3.fromRGB(20,0,0)
+frame.Active = true
+frame.Draggable = true
+
+Instance.new("UICorner", frame)
+
+local minimized = false
+
+local function btn(txt, y, callback)
+    local b = Instance.new("TextButton", frame)
+    b.Size = UDim2.new(1,-10,0,30)
+    b.Position = UDim2.new(0,5,0,y)
+    b.Text = txt
+    b.BackgroundColor3 = Color3.fromRGB(50,0,0)
+    b.TextColor3 = Color3.new(1,1,1)
+    b.MouseButton1Click:Connect(callback)
 end
 
--- ================= TAB 3 - CREDIT =================
-local cred = Instance.new("TextLabel", tabCredit)
-cred.Size = UDim2.new(0, 310, 0, 300)
-cred.Position = UDim2.new(0, 25, 0, 30)
-cred.BackgroundTransparency = 1
-cred.Text = "Developer : LANG MPRUY\nSince 2026\n\nTerima kasih telah pakai\nLangz Hub V6!\n\n✅ Auto Cook Manual Style\n✅ Auto Buy + Deteksi Harga\n✅ Anti Kill (Auto TP)\n✅ Neon Small UI"
-cred.TextColor3 = Color3.fromRGB(0, 255, 220)
-cred.TextScaled = true
-cred.Font = Enum.Font.Gotham
-cred.TextXAlignment = Enum.TextXAlignment.Left
-cred.TextYAlignment = Enum.TextYAlignment.Top
+btn("AUTO BUY", 10, function() AutoBuy() end)
 
-print("✅ LANGZ HUB V6 LOADED - AutoBuy + AntiKill + Manual Cook Ready!")
+btn("AUTO COOK", 50, function()
+    _G.AutoCook = not _G.AutoCook
+    _G.StopCook = false
+end)
+
+btn("STOP COOK", 90, function()
+    _G.StopCook = true
+    _G.AutoCook = false
+end)
+
+btn("AUTO SELL", 130, function()
+    _G.AutoSell = not _G.AutoSell
+end)
+
+btn("ESP", 170, function()
+    _G.ESP = not _G.ESP
+end)
+
+btn("MINIMIZE", 210, function()
+    minimized = not minimized
+    frame.Size = minimized and UDim2.new(0,120,0,30) or UDim2.new(0,300,0,400)
+end)
+
+-- WALK SPEED SLIDER
+local slider = Instance.new("TextButton", frame)
+slider.Size = UDim2.new(1,-10,0,30)
+slider.Position = UDim2.new(0,5,0,250)
+slider.Text = "Speed: 16-22"
+
+slider.MouseButton1Click:Connect(function()
+    _G.Speed = _G.Speed + 2
+    if _G.Speed > 22 then _G.Speed = 16 end
+    slider.Text = "Speed: ".._G.Speed
+end)
+
+print("FULL SYSTEM LOADED 🔥")
