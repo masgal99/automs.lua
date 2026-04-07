@@ -3,273 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔑 Key System - MasGal Hub</title>
+    <title>NEON KEY // MASGAL HUB</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff00aa;
+            --dark: #0a0a1f;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body {
             margin: 0;
-            padding: 0;
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: white;
+            font-family: 'Share Tech Mono', monospace;
+            background: var(--dark);
+            color: #fff;
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
         }
+
         .container {
-            background: rgba(0, 0, 0, 0.8);
-            padding: 40px 30px;
-            border-radius: 20px;
+            background: rgba(18, 18, 43, 0.95);
+            padding: 35px 25px;
+            border-radius: 15px;
             width: 95%;
-            max-width: 560px;
-            box-shadow: 0 10px 40px rgba(0, 255, 255, 0.25);
-            text-align: center;
+            max-width: 620px;
+            margin: 40px auto;
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.4),
+                        inset 0 0 20px rgba(255, 0, 170, 0.2);
         }
-        h1 { color: #00ffff; margin-bottom: 8px; }
-        .subtitle { color: #aaaaaa; margin-bottom: 30px; }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-cyan);
+            text-align: center;
+            font-size: 2.5rem;
+            letter-spacing: 6px;
+            text-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-pink);
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            letter-spacing: 4px;
+            margin-bottom: 30px;
+        }
+
+        .header-key {
+            background: rgba(0, 0, 0, 0.75);
+            border: 2px solid var(--neon-cyan);
+            padding: 18px;
+            margin: 25px 0;
+            border-radius: 10px;
+            text-align: left;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+        }
+
+        .header-key div {
+            margin: 8px 0;
+            font-size: 1.15rem;
+        }
+
+        .label { 
+            color: var(--neon-pink); 
+            font-size: 0.95rem; 
+        }
 
         input, button {
-            width: 85%;
-            padding: 14px;
-            margin: 10px auto;
+            width: 100%;
+            padding: 16px;
+            margin: 12px 0;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            display: block;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            font-family: 'Share Tech Mono', monospace;
         }
-        input { background: #1a1a2e; color: white; text-align: center; border: 1px solid #333; }
+
+        input {
+            background: #1a1a2f;
+            color: #fff;
+            border: 1px solid #555;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
         button {
-            background: #00ffcc;
-            color: black;
-            font-weight: 600;
+            background: linear-gradient(90deg, #00f3ff, #00ccaa);
+            color: #000;
+            font-weight: 700;
+            letter-spacing: 2px;
             cursor: pointer;
             transition: 0.3s;
         }
-        button:hover { background: #00ddaa; transform: scale(1.03); }
 
-        .section { 
-            margin: 35px 0; 
-            padding: 25px; 
-            background: rgba(255,255,255,0.06); 
-            border-radius: 15px; 
-        }
-        #result, #generatedKey, #deleteResult { margin-top: 15px; min-height: 50px; font-size: 17px; }
-        .success { color: #00ff88; font-weight: bold; }
-        .error { color: #ff5555; font-weight: bold; }
-        .info { color: #00ccff; }
-
-        .hidden { display: none; }
-        hr { border: 0; border-top: 1px solid #444; margin: 20px 0; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🔑 MasGal Hub</h1>
-        <p class="subtitle">HWID Lock + Expiry System</p>
-
-        <div class="section">
-            <h2>👑 Admin Panel</h2>
-            <input type="password" id="adminPass" placeholder="Masukkan Admin Password">
-            <button onclick="checkAdminPassword()">Login Admin</button>
-
-            <div id="adminGenerate" class="hidden">
-                <!-- Generate Key -->
-                <p>Durasi Key (Hari):</p>
-                <input type="number" id="days" value="30" placeholder="Expired dalam hari">
-                <button onclick="generateKey()">Generate Key Baru (MGKEY Format)</button>
-                <div id="generatedKey"></div>
-
-                <hr>
-
-                <!-- Delete Key -->
-                <h3>🗑️ Hapus Key</h3>
-                <input type="text" id="keyToDelete" placeholder="Masukkan Key yang ingin dihapus" style="text-transform: uppercase;">
-                <button onclick="deleteKey()" style="background: #ff4444; color: white;">Hapus Key Ini</button>
-                <div id="deleteResult"></div>
-            </div>
-        </div>
-
-        <hr>
-
-        <div class="section">
-            <h2>🚀 Loader</h2>
-            <input type="text" id="userKey" placeholder="Masukkan Key Kamu" maxlength="50">
-            <button onclick="verifyAndLoad()">Verify Key & Copy Script</button>
-            
-            <div id="result"></div>
-        </div>
-
-        <p>Total User Aktif: <strong id="totalUsers">0</strong></p>
-    </div>
-
-    <script>
-        // ================== FIREBASE CONFIG ==================
-        const firebaseConfig = {
-          apiKey: "AIzaSyCLAFJ169DIzqKDKl01TvWURrEOiHXOdvM",
-          authDomain: "databasr-e6fa1.firebaseapp.com",
-          databaseURL: "https://databasr-e6fa1-default-rtdb.asia-southeast1.firebasedatabase.app",
-          projectId: "databasr-e6fa1",
-          storageBucket: "databasr-e6fa1.firebasestorage.app",
-          messagingSenderId: "772087175709",
-          appId: "1:772087175709:web:ba7554bfabebe5e6dac4f4"
-        };
-
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        // ================== ADMIN PASSWORD ==================
-        const ADMIN_PASSWORD = "MASGALHUB"; 
-
-        // ================== SCRIPT TO COPY ==================
-        const ROBLOX_SCRIPT = `loadstring(game:HttpGet("https://raw.githubusercontent.com/masgal99/MasGal-Escuy/refs/heads/main/MG_SCRIPT"))()`;
-
-        // ================== HELPER ==================
-        function getHWID() {
-            let hwid = localStorage.getItem("roblox_hwid");
-            if (!hwid) {
-                hwid = "HWID-" + Math.random().toString(36).substring(2, 15).toUpperCase() + 
-                       Date.now().toString(36).toUpperCase().slice(-8);
-                localStorage.setItem("roblox_hwid", hwid);
-            }
-            return hwid;
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px var(--neon-cyan);
         }
 
-        function checkAdminPassword() {
-            const pass = document.getElementById("adminPass").value;
-            const generateSection = document.getElementById("adminGenerate");
-
-            if (pass === ADMIN_PASSWORD) {
-                generateSection.classList.remove("hidden");
-                document.getElementById("adminPass").style.display = "none";
-                alert("✅ Admin Login Sukses!");
-            } else {
-                alert("❌ Password Salah!");
-            }
+        .section {
+            margin: 35px 0;
+            padding: 25px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 12px;
         }
 
-        // ================== GENERATE KEY BARU (FORMAT MGKEY-XXXX-XXXX) ==================
-        async function generateKey() {
-            const days = parseInt(document.getElementById("days").value) || 7;
-            const expireTime = Date.now() + (days * 24 * 60 * 60 * 1000);
-
-            // Format Baru: MGKEY-XXXX-XXXX
-            const randomPart1 = Math.random().toString(36).substring(2, 6).toUpperCase();
-            const randomPart2 = Math.random().toString(36).substring(2, 6).toUpperCase();
-            const key = `MGKEY-\( {randomPart1}- \){randomPart2}`;
-
-            try {
-                await db.ref('keys/' + key).set({
-                    key: key,
-                    expires: expireTime,
-                    hwid: null,
-                    createdAt: Date.now(),
-                    used: false
-                });
-
-                document.getElementById("generatedKey").innerHTML = `
-                    <p class="success">✅ Key Berhasil Dibuat!</p>
-                    <strong style="font-size:18px; color:#00ffcc; word-break:break-all;">${key}</strong><br>
-                    <small>Berlaku sampai: ${new Date(expireTime).toLocaleDateString('id-ID')}</small>
-                `;
-            } catch (e) {
-                document.getElementById("generatedKey").innerHTML = `<p class="error">❌ Gagal: ${e.message}</p>`;
-            }
-        }
-
-        // ================== DELETE KEY ==================
-        async function deleteKey() {
-            const keyToDelete = document.getElementById("keyToDelete").value.trim().toUpperCase();
-            const resultDiv = document.getElementById("deleteResult");
-
-            if (!keyToDelete) {
-                resultDiv.innerHTML = `<p class="error">❌ Harap masukkan key yang ingin dihapus!</p>`;
-                return;
-            }
-
-            if (!keyToDelete.startsWith("MGKEY-")) {
-                resultDiv.innerHTML = `<p class="error">❌ Key harus berformat MGKEY-XXXX-XXXX</p>`;
-                return;
-            }
-
-            if (confirm(`⚠️ Yakin ingin menghapus key "${keyToDelete}" secara PERMANEN?`)) {
-                try {
-                    await db.ref('keys/' + keyToDelete).remove();
-                    resultDiv.innerHTML = `
-                        <p class="success">✅ Key <strong>${keyToDelete}</strong> berhasil dihapus!</p>
-                    `;
-                    document.getElementById("keyToDelete").value = "";
-                } catch (e) {
-                    resultDiv.innerHTML = `<p class="error">❌ Gagal menghapus: ${e.message}</p>`;
-                }
-            }
-        }
-
-        async function verifyAndLoad() {
-            const inputKey = document.getElementById("userKey").value.trim().toUpperCase();
-            const resultDiv = document.getElementById("result");
-            const hwid = getHWID();
-
-            if (!inputKey) {
-                resultDiv.innerHTML = `<p class="error">❌ Harap masukkan key!</p>`;
-                return;
-            }
-
-            resultDiv.innerHTML = `<p class="info">🔄 Memverifikasi...</p>`;
-
-            try {
-                const snapshot = await db.ref('keys/' + inputKey).once('value');
-                const data = snapshot.val();
-
-                if (!data) {
-                    resultDiv.innerHTML = `<p class="error">❌ Key tidak valid!</p>`;
-                    return;
-                }
-
-                if (Date.now() > data.expires) {
-                    resultDiv.innerHTML = `<p class="error">❌ Key sudah kedaluwarsa!</p>`;
-                    return;
-                }
-
-                if (data.hwid && data.hwid !== hwid) {
-                    resultDiv.innerHTML = `<p class="error">❌ Key ini terkunci pada device lain!</p>`;
-                    return;
-                }
-
-                if (!data.hwid) {
-                    await db.ref('keys/' + inputKey).update({
-                        hwid: hwid,
-                        used: true,
-                        usedAt: Date.now()
-                    });
-                }
-
-                await db.ref('stats/totalExecutes').transaction((current) => (current || 0) + 1);
-
-                navigator.clipboard.writeText(ROBLOX_SCRIPT).then(() => {
-                    resultDiv.innerHTML = `
-                        <p class="success">✅ Key Valid!</p>
-                        <p style="font-size:14px;">Script telah disalin ke clipboard.<br>Silakan paste di Executor kamu.</p>
-                    `;
-                }).catch(() => {
-                    resultDiv.innerHTML = `<p class="success">✅ Key Valid! Silakan salin script manual.</p>`;
-                });
-
-            } catch (error) {
-                resultDiv.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
-            }
-        }
-
-        function loadStats() {
-            db.ref('stats/totalExecutes').on('value', (snap) => {
-                document.getElementById("totalUsers").textContent = snap.val() || 0;
-            });
-        }
-
-        window.onload = loadStats;
-    </script>
-</body>
-</html>
+        .success { color: #00ff88; text
