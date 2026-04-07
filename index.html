@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔑 Key System - Roblox</title>
+    <title>🔑 Key System - MasGal Hub</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
@@ -27,6 +27,7 @@
             width: 95%;
             max-width: 560px;
             box-shadow: 0 10px 40px rgba(0, 255, 255, 0.25);
+            text-align: center;
         }
         h1 { color: #00ffff; margin-bottom: 8px; }
         .subtitle { color: #aaaaaa; margin-bottom: 30px; }
@@ -40,7 +41,7 @@
             font-size: 16px;
             display: block;
         }
-        input { background: #1a1a2e; color: white; text-align: center; }
+        input { background: #1a1a2e; color: white; text-align: center; border: 1px solid #333; }
         button {
             background: #00ffcc;
             color: black;
@@ -57,28 +58,26 @@
             border-radius: 15px; 
         }
         #result, #generatedKey { margin-top: 15px; min-height: 50px; font-size: 17px; }
-        .success { color: #00ff88; }
-        .error { color: #ff5555; }
+        .success { color: #00ff88; font-weight: bold; }
+        .error { color: #ff5555; font-weight: bold; }
         .info { color: #00ccff; }
 
         .hidden { display: none; }
+        hr { border: 0; border-top: 1px solid #444; margin: 20px 0; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔑 Key System Roblox</h1>
-        <p class="subtitle">HWID Lock + Expired</p>
+        <h1>🔑 MasGal Hub</h1>
+        <p class="subtitle">HWID Lock + Expiry System</p>
 
-        <!-- ADMIN LOGIN & GENERATE -->
         <div class="section">
             <h2>👑 Admin Panel</h2>
-            
-            <!-- Password Input -->
             <input type="password" id="adminPass" placeholder="Masukkan Admin Password">
             <button onclick="checkAdminPassword()">Login Admin</button>
 
-            <!-- Generate Section (awalnya hidden) -->
             <div id="adminGenerate" class="hidden">
+                <p>Durasi Key (Hari):</p>
                 <input type="number" id="days" value="30" placeholder="Expired dalam hari">
                 <button onclick="generateKey()">Generate Key Baru</button>
                 <div id="generatedKey"></div>
@@ -87,17 +86,15 @@
 
         <hr>
 
-        <!-- USER LOADER -->
         <div class="section">
             <h2>🚀 Loader</h2>
             <input type="text" id="userKey" placeholder="Masukkan Key Kamu" maxlength="50">
-            <button onclick="verifyAndLoad()">Verify Key & Load Script</button>
+            <button onclick="verifyAndLoad()">Verify Key & Copy Script</button>
             
             <div id="result"></div>
-            <div id="hwidDisplay"></div>
         </div>
 
-        <p>Total Execute: <strong id="totalUsers">0</strong> orang</p>
+        <p>Total User Aktif: <strong id="totalUsers">0</strong></p>
     </div>
 
     <script>
@@ -115,8 +112,11 @@
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // ================== ADMIN PASSWORD (GANTI INI!) ==================
-        const ADMIN_PASSWORD = "MASGALHUB";   // ← GANTI DENGAN PASSWORD KAMU YANG KUAT!
+        // ================== ADMIN PASSWORD ==================
+        const ADMIN_PASSWORD = "MASGALHUB"; 
+
+        // ================== SCRIPT TO COPY ==================
+        const ROBLOX_SCRIPT = `loadstring(game:HttpGet("https://raw.githubusercontent.com/masgal99/MasGal-Escuy/refs/heads/main/MG_SCRIPT"))()`;
 
         // ================== HELPER ==================
         function getHWID() {
@@ -129,7 +129,6 @@
             return hwid;
         }
 
-        // Check Admin Password
         function checkAdminPassword() {
             const pass = document.getElementById("adminPass").value;
             const generateSection = document.getElementById("adminGenerate");
@@ -137,19 +136,18 @@
             if (pass === ADMIN_PASSWORD) {
                 generateSection.classList.remove("hidden");
                 document.getElementById("adminPass").style.display = "none";
-                alert("✅ Login Admin Berhasil!");
+                alert("✅ Admin Login Sukses!");
             } else {
-                alert("❌ Password Admin Salah!");
+                alert("❌ Password Salah!");
             }
         }
 
-        // Generate Key
         async function generateKey() {
             const days = parseInt(document.getElementById("days").value) || 7;
             const expireTime = Date.now() + (days * 24 * 60 * 60 * 1000);
 
             const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
-            const key = `KEY-\( {randomPart}- \){Date.now().toString(36).slice(-6).toUpperCase()}`;
+            const key = `KEY-${randomPart}-${Date.now().toString(36).slice(-6).toUpperCase()}`;
 
             try {
                 await db.ref('keys/' + key).set({
@@ -162,47 +160,45 @@
 
                 document.getElementById("generatedKey").innerHTML = `
                     <p class="success">✅ Key Berhasil Dibuat!</p>
-                    <strong style="font-size:21px; color:#00ffcc; word-break:break-all;">${key}</strong><br>
-                    <small>Expired: ${new Date(expireTime).toLocaleDateString('id-ID')}</small>
+                    <strong style="font-size:18px; color:#00ffcc; word-break:break-all;">${key}</strong><br>
+                    <small>Berlaku sampai: ${new Date(expireTime).toLocaleDateString('id-ID')}</small>
                 `;
             } catch (e) {
                 document.getElementById("generatedKey").innerHTML = `<p class="error">❌ Gagal: ${e.message}</p>`;
             }
         }
 
-        // Verify & Load
         async function verifyAndLoad() {
             const inputKey = document.getElementById("userKey").value.trim().toUpperCase();
             const resultDiv = document.getElementById("result");
             const hwid = getHWID();
 
             if (!inputKey) {
-                resultDiv.innerHTML = `<p class="error">❌ Masukkan key terlebih dahulu!</p>`;
+                resultDiv.innerHTML = `<p class="error">❌ Harap masukkan key!</p>`;
                 return;
             }
 
-            resultDiv.innerHTML = `<p class="info">🔄 Memverifikasi key...</p>`;
+            resultDiv.innerHTML = `<p class="info">🔄 Memverifikasi...</p>`;
 
             try {
                 const snapshot = await db.ref('keys/' + inputKey).once('value');
                 const data = snapshot.val();
 
                 if (!data) {
-                    resultDiv.innerHTML = `<p class="error">❌ Key tidak ditemukan!</p>`;
+                    resultDiv.innerHTML = `<p class="error">❌ Key tidak valid!</p>`;
                     return;
                 }
 
                 if (Date.now() > data.expires) {
-                    resultDiv.innerHTML = `<p class="error">❌ Key sudah expired!</p>`;
+                    resultDiv.innerHTML = `<p class="error">❌ Key sudah kedaluwarsa!</p>`;
                     return;
                 }
 
                 if (data.hwid && data.hwid !== hwid) {
-                    resultDiv.innerHTML = `<p class="error">❌ Key ini sudah dipakai di device lain!</p>`;
+                    resultDiv.innerHTML = `<p class="error">❌ Key ini terkunci pada device lain!</p>`;
                     return;
                 }
 
-                // Lock HWID
                 if (!data.hwid) {
                     await db.ref('keys/' + inputKey).update({
                         hwid: hwid,
@@ -211,32 +207,28 @@
                     });
                 }
 
-                // Tambah counter
                 await db.ref('stats/totalExecutes').transaction((current) => (current || 0) + 1);
 
-                resultDiv.innerHTML = `<p class="success">✅ Key Valid! Loading Script...</p>`;
-
-                // GANTI LINK SCRIPT ROBLOX KAMU DI SINI
-                setTimeout(() => {
-                    window.open("https://link-script-kamu.com/script.lua", "_blank");
-                }, 1500);
+                // Salin script ke clipboard secara otomatis
+                navigator.clipboard.writeText(ROBLOX_SCRIPT).then(() => {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Key Valid!</p>
+                        <p style="font-size:14px;">Script telah disalin ke clipboard.<br>Silakan paste di Executor kamu.</p>
+                    `;
+                }).catch(() => {
+                    resultDiv.innerHTML = `<p class="success">✅ Key Valid! Silakan salin script manual.</p>`;
+                });
 
             } catch (error) {
-                resultDiv.innerHTML = `<p class="error">❌ Terjadi kesalahan: ${error.message}</p>`;
+                resultDiv.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
             }
         }
 
-        // Load total execute
         function loadStats() {
             db.ref('stats/totalExecutes').on('value', (snap) => {
                 document.getElementById("totalUsers").textContent = snap.val() || 0;
             });
         }
-
-        // Enter support
-        document.getElementById("userKey").addEventListener("keypress", e => {
-            if (e.key === "Enter") verifyAndLoad();
-        });
 
         window.onload = loadStats;
     </script>
