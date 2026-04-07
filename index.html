@@ -77,15 +77,15 @@
             <button onclick="checkAdminPassword()">Login Admin</button>
 
             <div id="adminGenerate" class="hidden">
-                <!-- ================== GENERATE KEY ================== -->
+                <!-- Generate Key -->
                 <p>Durasi Key (Hari):</p>
                 <input type="number" id="days" value="30" placeholder="Expired dalam hari">
-                <button onclick="generateKey()">Generate Key Baru (MASGAL Format)</button>
+                <button onclick="generateKey()">Generate Key Baru (MGKEY Format)</button>
                 <div id="generatedKey"></div>
 
                 <hr>
 
-                <!-- ================== DELETE KEY (FITUR BARU) ================== -->
+                <!-- Delete Key -->
                 <h3>🗑️ Hapus Key</h3>
                 <input type="text" id="keyToDelete" placeholder="Masukkan Key yang ingin dihapus" style="text-transform: uppercase;">
                 <button onclick="deleteKey()" style="background: #ff4444; color: white;">Hapus Key Ini</button>
@@ -151,15 +151,15 @@
             }
         }
 
-        // ================== GENERATE KEY BARU (FORMAT MASGAL) ==================
+        // ================== GENERATE KEY BARU (FORMAT MGKEY-XXXX-XXXX) ==================
         async function generateKey() {
             const days = parseInt(document.getElementById("days").value) || 7;
             const expireTime = Date.now() + (days * 24 * 60 * 60 * 1000);
 
-            // FORMAT BARU: MASG-XXXX-XXXX (sesuai request "MASG-ALRA-NDOM")
+            // Format Baru: MGKEY-XXXX-XXXX
             const randomPart1 = Math.random().toString(36).substring(2, 6).toUpperCase();
             const randomPart2 = Math.random().toString(36).substring(2, 6).toUpperCase();
-            const key = `MASG-\( {randomPart1}- \){randomPart2}`;
+            const key = `MGKEY-\( {randomPart1}- \){randomPart2}`;
 
             try {
                 await db.ref('keys/' + key).set({
@@ -180,7 +180,7 @@
             }
         }
 
-        // ================== FITUR BARU: DELETE KEY ==================
+        // ================== DELETE KEY ==================
         async function deleteKey() {
             const keyToDelete = document.getElementById("keyToDelete").value.trim().toUpperCase();
             const resultDiv = document.getElementById("deleteResult");
@@ -190,8 +190,8 @@
                 return;
             }
 
-            if (!keyToDelete.startsWith("MASG-")) {
-                resultDiv.innerHTML = `<p class="error">❌ Key harus berformat MASG-XXXX-XXXX</p>`;
+            if (!keyToDelete.startsWith("MGKEY-")) {
+                resultDiv.innerHTML = `<p class="error">❌ Key harus berformat MGKEY-XXXX-XXXX</p>`;
                 return;
             }
 
@@ -249,7 +249,6 @@
 
                 await db.ref('stats/totalExecutes').transaction((current) => (current || 0) + 1);
 
-                // Salin script ke clipboard secara otomatis
                 navigator.clipboard.writeText(ROBLOX_SCRIPT).then(() => {
                     resultDiv.innerHTML = `
                         <p class="success">✅ Key Valid!</p>
