@@ -118,4 +118,218 @@
             border-radius: 12px;
         }
 
-        .success { color: #00ff88; text
+        .success { color: #00ff88; text-shadow: 0 0 10px #00ff88; }
+        .error { color: #ff3366; text-shadow: 0 0 10px #ff3366; }
+        .info { color: var(--neon-cyan); }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MASGAL HUB</h1>
+        <p class="subtitle">NEON KEY SYSTEM v2.0</p>
+
+        <!-- ADMIN PANEL -->
+        <div class="section">
+            <h2 style="color:var(--neon-pink); text-align:center;">ADMIN TERMINAL</h2>
+            <input type="password" id="adminPass" placeholder="ENTER ADMIN PASSWORD">
+            <button onclick="checkAdminPassword()">LOGIN ADMIN</button>
+
+            <div id="adminGenerate" class="hidden">
+                <p style="color:var(--neon-cyan);">DURASI KEY (HARI):</p>
+                <input type="number" id="days" value="30">
+                <button onclick="generateKey()">GENERATE NEW KEY (MGKEY-XXXX-XXXX)</button>
+                <div id="generatedKey"></div>
+
+                <hr style="border-color:#444; margin:25px 0;">
+                <h3 style="color:#ff00aa;">RESET / DELETE</h3>
+                <input type="text" id="keyToDelete" placeholder="MGKEY-XXXX-XXXX" style="text-transform:uppercase;">
+                <button onclick="deleteKey()" style="background:#ff3366;">DELETE KEY</button>
+                <button onclick="resetHWID()" style="background:#ffaa00; margin-top:8px;">RESET HWID & DEVICES</button>
+                <div id="deleteResult"></div>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- LOADER -->
+        <div class="section">
+            <h2 style="color:var(--neon-cyan); text-align:center;">KEY VERIFICATION</h2>
+            <input type="text" id="userKey" placeholder="MASUKKAN KEY" maxlength="50" style="text-transform:uppercase;">
+            <button onclick="verifyAndLoad()">VERIFY & COPY SCRIPT</button>
+            
+            <div id="keyHeader" class="header-key hidden">
+                <div><span class="label">KEY :</span> <strong id="dispKey"></strong></div>
+                <div><span class="label">EXPIRED :</span> <span id="dispExpire"></span></div>
+                <div><span class="label">DEVICES :</span> <span id="dispDevices">0</span></div>
+            </div>
+
+            <div id="result"></div>
+        </div>
+
+        <p style="text-align:center; color:#666;">
+            Total Executes : <strong id="totalUsers" style="color:var(--neon-cyan);">0</strong>
+        </p>
+    </div>
+
+    <script>
+        // ================== FIREBASE CONFIG ==================
+        const firebaseConfig = {
+          apiKey: "AIzaSyCLAFJ169DIzqKDKl01TvWURrEOiHXOdvM",
+          authDomain: "databasr-e6fa1.firebaseapp.com",
+          databaseURL: "https://databasr-e6fa1-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "databasr-e6fa1",
+          storageBucket: "databasr-e6fa1.firebasestorage.app",
+          messagingSenderId: "772087175709",
+          appId: "1:772087175709:web:ba7554bfabebe5e6dac4f4"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const ADMIN_PASSWORD = "MASGALHUB";
+        const ROBLOX_SCRIPT = `loadstring(game:HttpGet("https://raw.githubusercontent.com/masgal99/MasGal-Escuy/refs/heads/main/MG_SCRIPT"))()`;
+
+        function getHWID() {
+            let hwid = localStorage.getItem("roblox_hwid");
+            if (!hwid) {
+                hwid = "HWID-" + Math.random().toString(36).substring(2,15).toUpperCase() + Date.now().toString(36).toUpperCase().slice(-8);
+                localStorage.setItem("roblox_hwid", hwid);
+            }
+            return hwid;
+        }
+
+        function checkAdminPassword() {
+            if (document.getElementById("adminPass").value === ADMIN_PASSWORD) {
+                document.getElementById("adminGenerate").classList.remove("hidden");
+                document.getElementById("adminPass").style.display = "none";
+                alert("✅ ADMIN ACCESS GRANTED");
+            } else {
+                alert("❌ ACCESS DENIED");
+            }
+        }
+
+        // ================== GENERATE KEY BARU (MGKEY-XXXX-XXXX) ==================
+        function generateRandomPart() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let result = "";
+            for (let i = 0; i < 4; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        async function generateKey() {
+            const days = parseInt(document.getElementById("days").value) || 30;
+            const expireTime = Date.now() + (days * 24 * 60 * 60 * 1000);
+
+            const part1 = generateRandomPart();
+            const part2 = generateRandomPart();
+            const key = `MGKEY-\( {part1}- \){part2}`;
+
+            try {
+                await db.ref('keys/' + key).set({
+                    key: key,
+                    expires: expireTime,
+                    hwid: null,
+                    devices: [],
+                    createdAt: Date.now(),
+                    used: false
+                });
+
+                document.getElementById("generatedKey").innerHTML = `
+                    <div class="header-key">
+                        <div><span class="label">KEY :</span> <strong>${key}</strong></div>
+                        <div><span class="label">EXPIRED :</span> ${new Date(expireTime).toLocaleDateString('id-ID')}</div>
+                        <div><span class="label">DEVICES :</span> 0</div>
+                    </div>
+                    <p class="success" style="text-align:center; margin-top:15px;">✅ KEY BERHASIL DIBUAT!</p>
+                `;
+            } catch (e) {
+                document.getElementById("generatedKey").innerHTML = `<p class="error">Gagal: ${e.message}</p>`;
+            }
+        }
+
+        async function deleteKey() {
+            const key = document.getElementById("keyToDelete").value.trim().toUpperCase();
+            if (!key) return alert("Masukkan key yang ingin dihapus!");
+
+            if (confirm(`YAKIN HAPUS KEY ${key} ?`)) {
+                await db.ref('keys/' + key).remove();
+                document.getElementById("deleteResult").innerHTML = `<p class="success">Key ${key} berhasil dihapus</p>`;
+            }
+        }
+
+        async function resetHWID() {
+            const key = document.getElementById("keyToDelete").value.trim().toUpperCase();
+            if (!key) return alert("Masukkan key!");
+
+            await db.ref('keys/' + key).update({ hwid: null, devices: [] });
+            document.getElementById("deleteResult").innerHTML = `<p class="success">HWID & Devices berhasil direset untuk key ${key}</p>`;
+        }
+
+        async function verifyAndLoad() {
+            const inputKey = document.getElementById("userKey").value.trim().toUpperCase();
+            const resultDiv = document.getElementById("result");
+            const headerDiv = document.getElementById("keyHeader");
+            const hwid = getHWID();
+
+            if (!inputKey) {
+                resultDiv.innerHTML = `<p class="error">Harap masukkan key!</p>`;
+                return;
+            }
+
+            resultDiv.innerHTML = `<p class="info">Memverifikasi key...</p>`;
+
+            try {
+                const snapshot = await db.ref('keys/' + inputKey).once('value');
+                const data = snapshot.val();
+
+                if (!data) {
+                    resultDiv.innerHTML = `<p class="error">Key tidak valid!</p>`;
+                    return;
+                }
+                if (Date.now() > data.expires) {
+                    resultDiv.innerHTML = `<p class="error">Key sudah kedaluwarsa!</p>`;
+                    return;
+                }
+
+                // Multi Device
+                let devices = data.devices || [];
+                const isNew = !devices.some(d => d.hwid === hwid);
+
+                if (isNew) {
+                    devices.push({ hwid: hwid, addedAt: Date.now() });
+                    await db.ref('keys/' + inputKey).update({ devices: devices });
+                }
+
+                // Tampilkan Header
+                document.getElementById("dispKey").textContent = inputKey;
+                document.getElementById("dispExpire").textContent = new Date(data.expires).toLocaleDateString('id-ID');
+                document.getElementById("dispDevices").textContent = devices.length;
+                headerDiv.classList.remove("hidden");
+
+                await db.ref('stats/totalExecutes').transaction((curr) => (curr || 0) + 1);
+
+                navigator.clipboard.writeText(ROBLOX_SCRIPT).then(() => {
+                    resultDiv.innerHTML = `<p class="success">✅ Key Valid! Script telah disalin ke clipboard.</p>`;
+                }).catch(() => {
+                    resultDiv.innerHTML = `<p class="success">✅ Key Valid!</p>`;
+                });
+
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+
+        function loadStats() {
+            db.ref('stats/totalExecutes').on('value', (snap) => {
+                document.getElementById("totalUsers").textContent = snap.val() || 0;
+            });
+        }
+
+        window.onload = loadStats;
+    </script>
+</body>
+</html>
