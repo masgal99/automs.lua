@@ -57,7 +57,7 @@
             background: rgba(255,255,255,0.06); 
             border-radius: 15px; 
         }
-        #result, #generatedKey { margin-top: 15px; min-height: 50px; font-size: 17px; }
+        #result, #generatedKey, #deleteResult { margin-top: 15px; min-height: 50px; font-size: 17px; }
         .success { color: #00ff88; font-weight: bold; }
         .error { color: #ff5555; font-weight: bold; }
         .info { color: #00ccff; }
@@ -77,10 +77,19 @@
             <button onclick="checkAdminPassword()">Login Admin</button>
 
             <div id="adminGenerate" class="hidden">
+                <!-- ================== GENERATE KEY ================== -->
                 <p>Durasi Key (Hari):</p>
                 <input type="number" id="days" value="30" placeholder="Expired dalam hari">
-                <button onclick="generateKey()">Generate Key Baru</button>
+                <button onclick="generateKey()">Generate Key Baru (MASGAL Format)</button>
                 <div id="generatedKey"></div>
+
+                <hr>
+
+                <!-- ================== DELETE KEY (FITUR BARU) ================== -->
+                <h3>🗑️ Hapus Key</h3>
+                <input type="text" id="keyToDelete" placeholder="Masukkan Key yang ingin dihapus" style="text-transform: uppercase;">
+                <button onclick="deleteKey()" style="background: #ff4444; color: white;">Hapus Key Ini</button>
+                <div id="deleteResult"></div>
             </div>
         </div>
 
@@ -106,6 +115,165 @@
           projectId: "databasr-e6fa1",
           storageBucket: "databasr-e6fa1.firebasestorage.app",
           messagingSenderId: "772087175709",
+          appId: "1:772087175709:web:ba7554bfabebe5e6dac4f4"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // ================== ADMIN PASSWORD ==================
+        const ADMIN_PASSWORD = "MASGALHUB"; 
+
+        // ================== SCRIPT TO COPY ==================
+        const ROBLOX_SCRIPT = `loadstring(game:HttpGet("https://raw.githubusercontent.com/masgal99/MasGal-Escuy/refs/heads/main/MG_SCRIPT"))()`;
+
+        // ================== HELPER ==================
+        function getHWID() {
+            let hwid = localStorage.getItem("roblox_hwid");
+            if (!hwid) {
+                hwid = "HWID-" + Math.random().toString(36).substring(2, 15).toUpperCase() + 
+                       Date.now().toString(36).toUpperCase().slice(-8);
+                localStorage.setItem("roblox_hwid", hwid);
+            }
+            return hwid;
+        }
+
+        function checkAdminPassword() {
+            const pass = document.getElementById("adminPass").value;
+            const generateSection = document.getElementById("adminGenerate");
+
+            if (pass === ADMIN_PASSWORD) {
+                generateSection.classList.remove("hidden");
+                document.getElementById("adminPass").style.display = "none";
+                alert("✅ Admin Login Sukses!");
+            } else {
+                alert("❌ Password Salah!");
+            }
+        }
+
+        // ================== GENERATE KEY BARU (FORMAT MASGAL) ==================
+        async function generateKey() {
+            const days = parseInt(document.getElementById("days").value) || 7;
+            const expireTime = Date.now() + (days * 24 * 60 * 60 * 1000);
+
+            // FORMAT BARU: MASG-XXXX-XXXX (sesuai request "MASG-ALRA-NDOM")
+            const randomPart1 = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const randomPart2 = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const key = `MASG-\( {randomPart1}- \){randomPart2}`;
+
+            try {
+                await db.ref('keys/' + key).set({
+                    key: key,
+                    expires: expireTime,
+                    hwid: null,
+                    createdAt: Date.now(),
+                    used: false
+                });
+
+                document.getElementById("generatedKey").innerHTML = `
+                    <p class="success">✅ Key Berhasil Dibuat!</p>
+                    <strong style="font-size:18px; color:#00ffcc; word-break:break-all;">${key}</strong><br>
+                    <small>Berlaku sampai: ${new Date(expireTime).toLocaleDateString('id-ID')}</small>
+                `;
+            } catch (e) {
+                document.getElementById("generatedKey").innerHTML = `<p class="error">❌ Gagal: ${e.message}</p>`;
+            }
+        }
+
+        // ================== FITUR BARU: DELETE KEY ==================
+        async function deleteKey() {
+            const keyToDelete = document.getElementById("keyToDelete").value.trim().toUpperCase();
+            const resultDiv = document.getElementById("deleteResult");
+
+            if (!keyToDelete) {
+                resultDiv.innerHTML = `<p class="error">❌ Harap masukkan key yang ingin dihapus!</p>`;
+                return;
+            }
+
+            if (!keyToDelete.startsWith("MASG-")) {
+                resultDiv.innerHTML = `<p class="error">❌ Key harus berformat MASG-XXXX-XXXX</p>`;
+                return;
+            }
+
+            if (confirm(`⚠️ Yakin ingin menghapus key "${keyToDelete}" secara PERMANEN?`)) {
+                try {
+                    await db.ref('keys/' + keyToDelete).remove();
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Key <strong>${keyToDelete}</strong> berhasil dihapus!</p>
+                    `;
+                    document.getElementById("keyToDelete").value = "";
+                } catch (e) {
+                    resultDiv.innerHTML = `<p class="error">❌ Gagal menghapus: ${e.message}</p>`;
+                }
+            }
+        }
+
+        async function verifyAndLoad() {
+            const inputKey = document.getElementById("userKey").value.trim().toUpperCase();
+            const resultDiv = document.getElementById("result");
+            const hwid = getHWID();
+
+            if (!inputKey) {
+                resultDiv.innerHTML = `<p class="error">❌ Harap masukkan key!</p>`;
+                return;
+            }
+
+            resultDiv.innerHTML = `<p class="info">🔄 Memverifikasi...</p>`;
+
+            try {
+                const snapshot = await db.ref('keys/' + inputKey).once('value');
+                const data = snapshot.val();
+
+                if (!data) {
+                    resultDiv.innerHTML = `<p class="error">❌ Key tidak valid!</p>`;
+                    return;
+                }
+
+                if (Date.now() > data.expires) {
+                    resultDiv.innerHTML = `<p class="error">❌ Key sudah kedaluwarsa!</p>`;
+                    return;
+                }
+
+                if (data.hwid && data.hwid !== hwid) {
+                    resultDiv.innerHTML = `<p class="error">❌ Key ini terkunci pada device lain!</p>`;
+                    return;
+                }
+
+                if (!data.hwid) {
+                    await db.ref('keys/' + inputKey).update({
+                        hwid: hwid,
+                        used: true,
+                        usedAt: Date.now()
+                    });
+                }
+
+                await db.ref('stats/totalExecutes').transaction((current) => (current || 0) + 1);
+
+                // Salin script ke clipboard secara otomatis
+                navigator.clipboard.writeText(ROBLOX_SCRIPT).then(() => {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Key Valid!</p>
+                        <p style="font-size:14px;">Script telah disalin ke clipboard.<br>Silakan paste di Executor kamu.</p>
+                    `;
+                }).catch(() => {
+                    resultDiv.innerHTML = `<p class="success">✅ Key Valid! Silakan salin script manual.</p>`;
+                });
+
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+            }
+        }
+
+        function loadStats() {
+            db.ref('stats/totalExecutes').on('value', (snap) => {
+                document.getElementById("totalUsers").textContent = snap.val() || 0;
+            });
+        }
+
+        window.onload = loadStats;
+    </script>
+</body>
+</html>          messagingSenderId: "772087175709",
           appId: "1:772087175709:web:ba7554bfabebe5e6dac4f4"
         };
 
